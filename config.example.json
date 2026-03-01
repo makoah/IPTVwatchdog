@@ -13,5 +13,7 @@
 
   "year_penalty": 5,
 
-  "report_open_browser": false
+  "report_open_browser": false,
+
+  "playlist_token": "replace-with-a-long-random-string-eg-a9f3k2m1p7q8r5s6"
 }

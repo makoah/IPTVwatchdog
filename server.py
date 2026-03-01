@@ -32,10 +32,14 @@ except ImportError:
     os.system(f"{sys.executable} -m pip install flask --break-system-packages --quiet")
     from flask import Flask, jsonify, request, Response
 
-SCRIPT_DIR   = Path(__file__).parent
-WISHLIST_PATH = SCRIPT_DIR / "wishlist.csv"
-REPORTS_DIR   = SCRIPT_DIR / "reports"
-WATCHDOG_PY   = SCRIPT_DIR / "iptv_watchdog.py"
+SCRIPT_DIR        = Path(__file__).parent
+WISHLIST_PATH     = SCRIPT_DIR / "wishlist.csv"
+REPORTS_DIR       = SCRIPT_DIR / "reports"
+WATCHDOG_PY       = SCRIPT_DIR / "iptv_watchdog.py"
+CATALOG_CACHE     = REPORTS_DIR / "catalog_cache.json"
+SCAN_SIDECAR      = REPORTS_DIR / "scan_results.json"
+FILTER_CONFIG     = SCRIPT_DIR / "filter_config.json"
+SERVER_CONFIG     = SCRIPT_DIR / "config.json"
 
 app = Flask(__name__)
 
@@ -538,6 +542,86 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 </script>
 </body>
 </html>"""
+
+
+# ─── PLAYLIST CURATOR ─────────────────────────────────────────────────────────
+def _curator_token() -> str:
+    """Read playlist_token from config.json. Returns empty string if not set."""
+    if not SERVER_CONFIG.exists():
+        return ""
+    with open(SERVER_CONFIG, encoding="utf-8") as f:
+        return json.load(f).get("playlist_token", "")
+
+
+def _load_filter_config() -> list:
+    """Return the list of keep_categories from filter_config.json."""
+    if not FILTER_CONFIG.exists():
+        return []
+    with open(FILTER_CONFIG, encoding="utf-8") as f:
+        return json.load(f).get("keep_categories", [])
+
+
+def _load_catalog_cache() -> list:
+    """Return all parsed M3U entries from the catalog cache written by the watchdog."""
+    if not CATALOG_CACHE.exists():
+        return []
+    with open(CATALOG_CACHE, encoding="utf-8") as f:
+        return json.load(f).get("entries", [])
+
+
+def _load_scan_sidecar() -> list:
+    """Return wishlist match results from the scan sidecar written by the watchdog."""
+    if not SCAN_SIDECAR.exists():
+        return []
+    with open(SCAN_SIDECAR, encoding="utf-8") as f:
+        return json.load(f).get("results", [])
+
+
+def _build_m3u(entries: list) -> str:
+    """Serialise a list of {group, title, url} dicts to M3U text."""
+    lines = ["#EXTM3U"]
+    for e in entries:
+        url = e.get("url", "").strip()
+        if not url:
+            continue
+        group = e.get("group", "")
+        title = e.get("title", "")
+        lines.append(f'#EXTINF:-1 group-title="{group}",{title}')
+        lines.append(url)
+    return "\n".join(lines)
+
+
+@app.route("/m3u/<token>/playlist.m3u")
+def serve_playlist(token):
+    expected = _curator_token()
+    if not expected or token != expected:
+        return "", 404
+
+    keep = set(_load_filter_config())
+    if not keep:
+        return "filter_config.json is missing or has no keep_categories.", 503
+
+    # Static layer — whitelisted categories
+    catalog  = _load_catalog_cache()
+    filtered = [e for e in catalog if e.get("group", "") in keep]
+
+    # Dynamic layer — wishlist movies currently in the 4K catalogue
+    for result in _load_scan_sidecar():
+        if result.get("found") and result.get("matches"):
+            best = result["matches"][0]
+            if best.get("stream_url"):
+                filtered.append({
+                    "group": "🎬 Watchlist – Available Now",
+                    "title": result["wish_title"],
+                    "url":   best["stream_url"],
+                })
+
+    m3u = _build_m3u(filtered)
+    return Response(
+        m3u,
+        mimetype="audio/x-mpegurl",
+        headers={"Content-Disposition": "attachment; filename=playlist.m3u"},
+    )
 
 
 @app.route("/")

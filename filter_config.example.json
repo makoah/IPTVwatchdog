@@ -1,0 +1,12 @@
+{
+  "_comment": "Copy to filter_config.json and fill in your exact group-title values. Run 'python3 iptv_watchdog.py --list-groups' to discover all available groups.",
+
+  "keep_categories": [
+    "US | NFL",
+    "US | Sports",
+    "NL | Dutch Channels",
+    "US | Entertainment",
+    "24/7 | Movies",
+    "24/7 | Sports"
+  ]
+}

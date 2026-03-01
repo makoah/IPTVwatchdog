@@ -1,5 +1,11 @@
-# Personal config — contains your M3U URL and credentials, never commit this
+# Personal config — contains your M3U URL, credentials, and playlist token
 config.json
+
+# Curator category whitelist — contains your provider's group names
+filter_config.json
+
+# Group discovery output
+docs/groups.txt
 
 # Generated reports
 reports/

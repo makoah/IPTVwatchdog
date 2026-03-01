@@ -475,10 +475,49 @@ def generate_html_report(results: list, catalog_count: int) -> str:
     return html
 
 
+# ─── CURATOR HELPERS ──────────────────────────────────────────────────────────
+def save_catalog_cache(entries: list, path: Path):
+    """Persist all parsed M3U entries to JSON for the playlist curator."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    cache = [{"group": e.get("group", ""), "title": e["title"], "url": e.get("url", "")}
+             for e in entries]
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"generated": datetime.now().isoformat(timespec="seconds"),
+                   "entries": cache}, f)
+    print(f"  Catalog cache: {len(cache):,} entries → {path.name}")
+
+
+def save_scan_sidecar(results: list, path: Path):
+    """Persist scan match results to JSON for the playlist curator's dynamic layer."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump({"generated": datetime.now().isoformat(timespec="seconds"),
+                   "results": results}, f, indent=2)
+    print(f"  Scan sidecar:  {path.name}")
+
+
+def list_groups(cfg: dict, output_path: Path):
+    """Download M3U and write all unique group-title values to a file."""
+    content = fetch_m3u(cfg["m3u_url"])
+    entries = parse_m3u(content)
+    groups  = sorted({e.get("group", "") for e in entries if e.get("group")})
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(f"# Unique group-title values — {len(groups)} total\n")
+        f.write(f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+        f.write("# Copy the names you want into filter_config.json → keep_categories\n\n")
+        for g in groups:
+            f.write(f"{g}\n")
+    print(f"\n{len(groups)} groups written to {output_path}")
+    print("Review the file and add your chosen categories to filter_config.json")
+
+
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="IPTV Movie Watchdog")
     parser.add_argument("--config", default=None, help="Path to config.json")
+    parser.add_argument("--list-groups", action="store_true",
+                        help="Dump all unique group-title values from the playlist and exit")
     args = parser.parse_args()
 
     script_dir  = Path(__file__).parent
@@ -494,6 +533,11 @@ def main():
     # Load config
     cfg = load_config(config_path)
 
+    # ── Group discovery mode ───────────────────────────────────────────────────
+    if args.list_groups:
+        list_groups(cfg, script_dir / "docs" / "groups.txt")
+        sys.exit(0)
+
     # Load wishlist
     wishlist = load_wishlist(wishlist_path)
     if not wishlist:
@@ -504,6 +548,9 @@ def main():
     content    = fetch_m3u(cfg["m3u_url"])
     all_entries = parse_m3u(content)
     print(f"Parsed {len(all_entries):,} total entries from playlist.")
+
+    # Save full catalog cache for the playlist curator
+    save_catalog_cache(all_entries, reports_dir / "catalog_cache.json")
 
     # Filter 4K movies
     movies_4k = filter_4k_movies(all_entries, cfg)
@@ -529,6 +576,9 @@ def main():
             print(f"  ✅ {r['wish_title']:<35} → {best['catalog_title']} ({best['score']}%)")
         else:
             print(f"  ❌ {r['wish_title']}")
+
+    # Save scan sidecar for the playlist curator's dynamic 4K layer
+    save_scan_sidecar(results, reports_dir / "scan_results.json")
 
     # Generate & save HTML report
     reports_dir.mkdir(parents=True, exist_ok=True)
