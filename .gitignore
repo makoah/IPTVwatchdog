@@ -1,0 +1,24 @@
+# Personal config — contains your M3U URL and credentials, never commit this
+config.json
+
+# Generated reports
+reports/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+*.log
+watchdog.log
+
+# macOS
+.DS_Store
+
+# Virtual environments
+.venv/
+venv/
+env/

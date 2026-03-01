@@ -1,0 +1,17 @@
+{
+  "_comment": "Copy this file to config.json and fill in your M3U URL.",
+
+  "m3u_url": "http://your-provider.com/get.php?username=YOUR_USERNAME&password=YOUR_PASSWORD&type=m3u_plus&output=ts",
+
+  "category_keywords": ["4k", "uhd", "2160"],
+
+  "category_must_include_movie": false,
+
+  "match_threshold": 78,
+
+  "year_bonus": 12,
+
+  "year_penalty": 5,
+
+  "report_open_browser": false
+}
