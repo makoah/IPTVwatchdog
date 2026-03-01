@@ -2,6 +2,8 @@
 
 Scans your IPTV M3U playlist for 4K movies that match your personal wishlist and generates a daily HTML report. Comes with an optional web dashboard for managing your list and triggering scans.
 
+Also includes a **Personal Curator** — a filtered M3U playlist endpoint that slims your provider's full playlist (50,000+ entries) down to only the channels and categories you actually watch, served from your own VPS at a secret-token URL compatible with any IPTV app.
+
 ---
 
 ## How it works
@@ -10,6 +12,7 @@ Scans your IPTV M3U playlist for 4K movies that match your personal wishlist and
 2. Filters entries that belong to 4K/UHD categories
 3. Fuzzy-matches those titles against your `wishlist.csv` (handles messy IPTV naming, quality tags, year variants)
 4. Outputs a styled HTML report showing what's available and what's still missing
+5. Saves a catalog cache and scan sidecar so the Personal Curator can serve a live filtered playlist
 
 ---
 
@@ -17,15 +20,18 @@ Scans your IPTV M3U playlist for 4K movies that match your personal wishlist and
 
 | File | Purpose |
 |------|---------|
-| `iptv_watchdog.py` | Core engine — fetch, parse, match, generate report |
-| `server.py` | Optional Flask web dashboard on port 8787 |
+| `iptv_watchdog.py` | Core engine — fetch, parse, match, generate report, write caches |
+| `server.py` | Flask web dashboard (port 8787) + curator playlist endpoint |
 | `run_watchdog.sh` | Shell wrapper used by cron to run the scan |
 | `setup_schedule.sh` | One-time script to register the daily cron job |
 | `wishlist.csv` | Your movie wishlist (title, year, notes) |
 | `config.json` | Your local config — **never committed** |
 | `config.example.json` | Config template with all available options |
+| `filter_config.json` | Your curator category whitelist — **never committed** |
+| `filter_config.example.json` | Curator config template |
 
 Reports are saved to `reports/watchdog_YYYY-MM-DD.html` and `reports/latest.html`.
+Caches written after each scan: `reports/catalog_cache.json`, `reports/scan_results.json`.
 
 ---
 
@@ -98,9 +104,73 @@ Open `http://localhost:8787` in your browser. The dashboard lets you:
 - Watch live scan progress in the log panel
 - View the latest report embedded inline
 
-### Option C — Schedule via cron (automated daily runs)
+### Option C — Personal Curator (filtered playlist endpoint)
 
-Run once to register the cron job:
+Serves a slim, curated M3U from your VPS — only the channels you care about, plus your watchlist movies that are currently available in 4K.
+
+**Step 1 — Discover your provider's group names:**
+
+```bash
+python3 iptv_watchdog.py --list-groups
+```
+
+This downloads the full playlist, extracts all unique `group-title` values, and writes them to `docs/groups.txt`. Review the file to find the exact category names you want.
+
+**Step 2 — Create your filter config:**
+
+```bash
+cp filter_config.example.json filter_config.json
+```
+
+Edit `filter_config.json` and paste in the exact group names you want to keep:
+
+```json
+{
+  "keep_categories": [
+    "US| NFL PACKAGE",
+    "NL| ALGEMEEN",
+    "24/7 MOVIES & SERIES"
+  ]
+}
+```
+
+**Step 3 — Add a playlist token to `config.json`:**
+
+Generate a strong random token and add it to your `config.json`:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+```json
+{
+  "m3u_url": "...",
+  "playlist_token": "your-long-random-token-here"
+}
+```
+
+**Step 4 — Start the server and use the URL:**
+
+```bash
+python3 server.py
+```
+
+Your curated playlist is now available at:
+```
+http://<your-host>:8787/m3u/<playlist_token>/playlist.m3u
+```
+
+Point any IPTV app (TiviMate, IPTV Smarters, etc.) at this URL. The playlist combines:
+- All entries from your whitelisted categories
+- A `🎬 Watchlist – Available Now` group with wishlist movies currently in the 4K catalog
+
+The playlist updates automatically after each Watchdog scan.
+
+> **Security note:** Stream URLs contain your provider credentials. Keep your token long and unguessable. Both `config.json` and `filter_config.json` are gitignored and must be created manually on each machine.
+
+### Option D — Schedule via cron (automated daily runs)
+
+Run once to register the cron job (macOS/Linux):
 
 ```bash
 bash setup_schedule.sh
@@ -129,6 +199,7 @@ All settings in `config.json` are optional — defaults work for most providers.
 | `year_bonus` | `12` | Score boost when wishlist year matches catalog year |
 | `year_penalty` | `5` | Score reduction when years differ |
 | `report_open_browser` | `false` | Auto-open the report in a browser after each scan |
+| `playlist_token` | *(required for curator)* | Secret token for the `/m3u/<token>/playlist.m3u` endpoint |
 
 ### Tuning match quality
 
@@ -145,20 +216,29 @@ All settings in `config.json` are optional — defaults work for most providers.
 git clone https://github.com/makoah/IPTVwatchdog.git
 cd IPTVwatchdog
 cp config.example.json config.json
-nano config.json   # add your M3U URL
+nano config.json   # add your M3U URL and playlist_token
 
-# Run a scan manually
+# Set up the curator category whitelist
+cp filter_config.example.json filter_config.json
+
+# Discover your provider's exact group names
+python3 iptv_watchdog.py --list-groups
+cat docs/groups.txt   # pick what you want
+
+nano filter_config.json   # paste in your chosen categories
+
+# Run a scan (also writes catalog_cache.json and scan_results.json)
 python3 iptv_watchdog.py
 
 # Or schedule it
 bash setup_schedule.sh
 
-# To expose the dashboard (bind to all interfaces instead of localhost)
-# Edit the last line of server.py: host="0.0.0.0"
+# Start the server (dashboard + curator endpoint)
+# Edit the last line of server.py: host="0.0.0.0" to bind to all interfaces
 python3 server.py
 ```
 
-> **Note:** `config.json` is gitignored and must be created manually on each machine.
+> **Note:** `config.json` and `filter_config.json` are gitignored and must be created manually on each machine.
 
 ---
 
