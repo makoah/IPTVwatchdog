@@ -1,0 +1,22 @@
+{
+  "keep_categories": [
+    "NL | Dutch Channels",
+    "US | Sports"
+  ],
+  "wishlist": [
+    {
+      "title": "Dune Part Two",
+      "year": "2024"
+    },
+    {
+      "title": "Inception"
+    }
+  ],
+  "series": [
+    "Slow Horses",
+    "Severance"
+  ],
+  "match_threshold": 78,
+  "year_bonus": 12,
+  "year_penalty": 5
+}

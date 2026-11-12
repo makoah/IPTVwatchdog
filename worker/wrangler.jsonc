@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "iptvwatchdog-curator",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-12",
+  "workers_dev": true,
+  "vars": {
+    "PUBLIC_BASE_URL": "https://iptvwatchdog-curator.YOUR_SUBDOMAIN.workers.dev"
+  },
+  "r2_buckets": [
+    {
+      "binding": "CURATOR_BUCKET",
+      "bucket_name": "iptvwatchdog-curator"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "CURATOR_CONFIG",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 4 * * 1"
+    ]
+  },
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
+  }
+}
