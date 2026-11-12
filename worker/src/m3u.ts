@@ -51,8 +51,15 @@ export function parseExtinf(extinf: string, url: string): M3uEntry {
 
 export async function* parseM3u(stream: ReadableStream<Uint8Array>): AsyncGenerator<M3uEntry> {
   let pendingExtinf = "";
+  let sawHeader = false;
   for await (const rawLine of readLines(stream)) {
-    const line = rawLine.trim();
+    const line = rawLine.trim().replace(/^\uFEFF/, "");
+    if (!line) continue;
+    if (!sawHeader) {
+      if (!line.startsWith("#EXTM3U")) throw new Error("Provider response is not an M3U playlist");
+      sawHeader = true;
+      continue;
+    }
     if (line.startsWith("#EXTINF")) {
       pendingExtinf = line;
     } else if (pendingExtinf && line && !line.startsWith("#")) {
@@ -60,6 +67,7 @@ export async function* parseM3u(stream: ReadableStream<Uint8Array>): AsyncGenera
       pendingExtinf = "";
     }
   }
+  if (!sawHeader) throw new Error("Provider response is not an M3U playlist");
 }
 
 function quoteAttribute(value: string): string {

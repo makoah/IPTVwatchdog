@@ -1,3 +1,5 @@
+import type { ByteWriter } from "./types";
+
 export interface EpgFilterResult {
   channels: number;
   programmes: number;
@@ -11,7 +13,7 @@ function xmlAttribute(element: string, name: string): string {
 export async function filterXmltv(
   input: ReadableStream<Uint8Array>,
   selectedIds: ReadonlySet<string>,
-  writer: WritableStreamDefaultWriter<Uint8Array>,
+  writer: ByteWriter,
 ): Promise<EpgFilterResult> {
   const reader = input.getReader();
   const decoder = new TextDecoder();

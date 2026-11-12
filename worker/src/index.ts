@@ -1,4 +1,3 @@
-import { refresh } from "./refresh";
 import { isPublicationVersion, objectKey, readManifest } from "./storage";
 import type { Env } from "./types";
 
@@ -57,34 +56,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return serveObject(env, playlistMatch[2] as "playlist.m3u" | "epg.xml", request);
   }
 
-  if (url.pathname === "/admin/refresh" && request.method === "POST") {
-    const authorization = request.headers.get("authorization") ?? "";
-    const suppliedToken = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-    if (!(await secretEquals(suppliedToken, env.ADMIN_TOKEN))) return notFound();
-    try {
-      const stats = await refresh(env);
-      console.log(JSON.stringify({ event: "refresh_complete", ...stats }));
-      return Response.json({ ok: true, ...stats });
-    } catch (error) {
-      console.error(JSON.stringify({ event: "refresh_failed", error: error instanceof Error ? error.name : "unknown" }));
-      return Response.json({ ok: false, error: "Refresh failed" }, { status: 502 });
-    }
-  }
-
   return notFound();
 }
 
 export default {
   fetch: handleRequest,
-  async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
-    try {
-      const stats = await refresh(env);
-      console.log(JSON.stringify({ event: "scheduled_refresh_complete", ...stats }));
-    } catch (error) {
-      console.error(
-        JSON.stringify({ event: "scheduled_refresh_failed", error: error instanceof Error ? error.name : "unknown" }),
-      );
-      throw error;
-    }
-  },
 } satisfies ExportedHandler<Env>;
