@@ -36,3 +36,7 @@ worker/.env
 worker/.env.*
 worker/.wrangler/
 worker/node_modules/
+
+# Generated curator output contains provider credentials
+playlist.m3u
+epg.xml

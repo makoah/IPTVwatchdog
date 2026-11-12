@@ -4,7 +4,7 @@ Scans your IPTV M3U playlist for 4K movies that match your personal wishlist and
 
 Also includes a **Personal Curator** — a filtered M3U playlist endpoint that slims your provider's full playlist (50,000+ entries) down to only the channels and categories you actually watch, served from your own VPS at a secret-token URL compatible with any IPTV app.
 
-An alternative Cloudflare implementation lives in [`worker/`](worker/README.md). It builds a token-protected playlist and filtered EPG in R2 on a weekly schedule while leaving every video stream pointed directly at the provider.
+An alternative Cloudflare implementation lives in [`worker/`](worker/README.md). A weekly GitHub Action builds a token-protected playlist and filtered EPG in R2, while a thin free-plan Worker serves them without proxying video.
 
 ---
 

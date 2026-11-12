@@ -30,10 +30,9 @@ export interface RefreshStats {
 
 export interface Env {
   CURATOR_BUCKET: R2Bucket;
-  CURATOR_CONFIG: KVNamespace;
-  M3U_URL: string;
-  EPG_URL?: string;
   PLAYLIST_TOKEN: string;
-  ADMIN_TOKEN: string;
-  PUBLIC_BASE_URL: string;
+}
+
+export interface ByteWriter {
+  write(chunk: Uint8Array): Promise<void> | void;
 }
