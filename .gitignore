@@ -28,3 +28,11 @@ watchdog.log
 .venv/
 venv/
 env/
+
+# Cloudflare Worker local secrets and state
+worker/.dev.vars*
+!worker/.dev.vars.example
+worker/.env
+worker/.env.*
+worker/.wrangler/
+worker/node_modules/

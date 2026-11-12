@@ -4,6 +4,8 @@ Scans your IPTV M3U playlist for 4K movies that match your personal wishlist and
 
 Also includes a **Personal Curator** — a filtered M3U playlist endpoint that slims your provider's full playlist (50,000+ entries) down to only the channels and categories you actually watch, served from your own VPS at a secret-token URL compatible with any IPTV app.
 
+An alternative Cloudflare implementation lives in [`worker/`](worker/README.md). It builds a token-protected playlist and filtered EPG in R2 on a weekly schedule while leaving every video stream pointed directly at the provider.
+
 ---
 
 ## How it works
@@ -29,6 +31,7 @@ Also includes a **Personal Curator** — a filtered M3U playlist endpoint that s
 | `config.example.json` | Config template with all available options |
 | `filter_config.json` | Your curator category whitelist — **never committed** |
 | `filter_config.example.json` | Curator config template |
+| `worker/` | TypeScript Cloudflare Worker curator, tests, and setup guide |
 
 Reports are saved to `reports/watchdog_YYYY-MM-DD.html` and `reports/latest.html`.
 Caches written after each scan: `reports/catalog_cache.json`, `reports/scan_results.json`.

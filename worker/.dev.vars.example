@@ -1,0 +1,5 @@
+M3U_URL="http://provider.example/get.php?username=YOUR_USERNAME&password=YOUR_PASSWORD&type=m3u_plus&output=ts"
+# Optional. Omit to derive xmltv.php from an Xtream-style M3U_URL.
+EPG_URL="http://provider.example/xmltv.php?username=YOUR_USERNAME&password=YOUR_PASSWORD"
+PLAYLIST_TOKEN="replace-with-a-long-random-token"
+ADMIN_TOKEN="replace-with-a-different-long-random-token"
